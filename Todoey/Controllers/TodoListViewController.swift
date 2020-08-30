@@ -16,29 +16,37 @@ class TodoListViewController: UITableViewController {
     
     var itemArray = [Item()] // creating an array that holds things of type Item()
     
-    let defaults = UserDefaults.standard // Using the singleton of the UserFefaults Class
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory,in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    
+    
+    //let defaults = UserDefaults.standard // Using the singleton, standard UserDefaults(), of the UserDefaults Class
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        let newItem = Item()
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
+        print(dataFilePath)
         
-        let newItem2 = Item()
-        newItem2.title = "Buy Eggs"
-        itemArray.append(newItem2)
         
-        let newItem3 = Item()
-        newItem3.title = "Destroy Demogorgon"
-        itemArray.append(newItem3)
+//        let newItem = Item()
+//        newItem.title = "Find Mike"
+//        itemArray.append(newItem)
+//
+//        let newItem2 = Item()
+//        newItem2.title = "Buy Eggs"
+//        itemArray.append(newItem2)
+//
+//        let newItem3 = Item()
+//        newItem3.title = "Destroy Demogorgon"
+//        itemArray.append(newItem3)
+        
+        loadItems()
         
         
         //Use IF statement because the list may not exist and we dont want it to crash
-        if let items = defaults.array(forKey: "TodoListArray") as? [Items]{ // Getting the stored data located with key: "ToDoListArray"
-            itemArray = items
-        }
+//        if let items = defaults.array(forKey: "TodoListArray") as? [Item]{ // Getting the stored data located with key: "ToDoListArray"
+//            itemArray = items
+//        }
     }
     
     //MARK - Tableview Datasource Methods
@@ -101,6 +109,8 @@ class TodoListViewController: UITableViewController {
 //            itemArray[indexPath.row].done = false
 //        }
         
+        saveItems()
+        
         tableView.reloadData()
             
         
@@ -134,9 +144,21 @@ class TodoListViewController: UITableViewController {
             //self.itemArray.append(textField.text!) // need to force unwrap it (!) because it may be NIL
             // you can also put: .append(textField.text ?? "New Item") if it is NIL then it'll replace the string with "New Item"
             
-            self.defaults.set(self.itemArray, forKey: "TodoListArray") //Storing the Array data in out app's .p list file
+            //self.defaults.set(self.itemArray, forKey: "TodoListArray") //Storing the Array data in out app's default .plist file
             
-            self.tableView.reloadData()
+            self.saveItems() // <-- vvvvv Put the below code into a function to clean it up vvvvvvvvv
+            
+//            let encoder = PropertyListEncoder()
+//
+//            do{
+//                let data = try encoder.encode(self.itemArray)
+//                try data.write(to: self.dataFilePath!)
+//            } catch{
+//                print("Error encoding item array, \(error)")
+//            }
+//
+//
+//            self.tableView.reloadData()
             
             
         }
@@ -151,7 +173,36 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    //MARK - Model Manupilation Methods
+    
+    func saveItems(){
+        
+        let encoder = PropertyListEncoder()
+        
+        do{
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        } catch{
+            print("Error encoding item array, \(error)")
+        }
+        
+        
+        self.tableView.reloadData()
+        
+    }
+    
+    func loadItems(){
+        
+       if let data = try? Data(contentsOf: dataFilePath!){ // the ? changes it to an optional, which means i have to use optional binding (if statement) to unwrap it safely
+            let decoder = PropertyListDecoder()
+        do{
+        itemArray = try decoder.decode([Item].self, from: data)
+        }catch{
+            print("Error decoding item array, \(error)")
+            }
+        }
 
 
+    }
 }
 
