@@ -7,17 +7,35 @@
 //
 
 import UIKit
+import CoreData
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: UITableViewController { // Got rid of (UISearchBarDelegate,) because we are adding an Extension at the bottom aoutside the Class declaration
     
     //let itemArray = ["Find Mike", "Buy Eggs", "Destroy Demogorgon"]
     // making it a VAR istead on a constant, (Making it mutable) so we can add items to it
     //var itemArray = ["Find Mike", "Buy Eggs", "Destroy Demogorgon"]
     
-    var itemArray = [Item()] // creating an array that holds things of type Item()
+    var itemArray = [Item]() // creating an array that holds things of type Item()
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory,in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory,in: .userDomainMask)
     
+    var selectedCategory : Category? { // ? because its going to be nil until we set it a value
+        didSet{ // Once selectedCategory gets set a value
+            loadItems()
+        }
+    }
+    
+    // vvvvvvvvvv This is how we create a reference (Singleton Object) to our AppDelegate!!!!!! vvvvvvvvvv
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+    //^^^^^^^^ moving this line of code up here to make it a shared constant^^^^^^^^^
+    
+    //vvvvvvv Don't need to manually addthis in order to set it as a delegate, we just set the searchBar as the delegate ourselves in Main.storyboard vvvvvvvvv
+    
+    //@IBOutlet weak var searchBar: UISearchBar!
+    
+    //^^^^^^^ Don't need to manually addthis in order to set it as a delegate, we just set the searchBar as the delegate ourselves in Main.storyboard^^^^^^^^^^^^
     
     //let defaults = UserDefaults.standard // Using the singleton, standard UserDefaults(), of the UserDefaults Class
 
@@ -27,6 +45,11 @@ class TodoListViewController: UITableViewController {
         
         print(dataFilePath)
         
+        //vvvv Dont need to manually do this, we just set the searchBar as the delegate ourselves in the Main.stoaryboard vvvvvvvvvv
+        
+        //searchBar.delegate = self
+        
+        //^^^^^^^^^Dont need to manually do this, we just set the searchBar as the delegate ourselves in the Main.stoaryboard ^^^^^^^^
         
 //        let newItem = Item()
 //        newItem.title = "Find Mike"
@@ -40,7 +63,11 @@ class TodoListViewController: UITableViewController {
 //        newItem3.title = "Destroy Demogorgon"
 //        itemArray.append(newItem3)
         
-        loadItems()
+        //vvvvvvvvv deleting loadItems() below because it gets called when the Segue is performd by setting the 'selectedCategory' a value and once selectedCategory gets set a value loadItems() gets called, and that has to happen in order to get to this ViewController vvvvvvvvv
+        
+//        loadItems()
+        
+        //^^^^^^^^^ deleting loadItems() above because it gets called when the Segue is performd by setting the 'selectedCategory' a value and once selectedCategory gets set a value loadItems() gets called, and that has to happen in order to get to this ViewController ^^^^^^^^
         
         
         //Use IF statement because the list may not exist and we dont want it to crash
@@ -49,7 +76,7 @@ class TodoListViewController: UITableViewController {
 //        }
     }
     
-    //MARK - Tableview Datasource Methods
+    //MARK: - Tableview Datasource Methods
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
@@ -82,11 +109,12 @@ class TodoListViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
+
         return itemArray.count
+
     }
     
-    //MARK - TableView Delegate Methods
+    //MARK: - TableView Delegate Methods
     
 //    let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tableViewTapped))
 //    self.addGestureRecognizer(tapGesture)
@@ -98,11 +126,25 @@ class TodoListViewController: UITableViewController {
         
         //tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
         
-        //vvvvvvvvUSE THIS ISTEAD OF CODE BELOW THIS LINE, USES ALOT LESS CODE!!!vvvvvvvvv
+        //vvvvvvvv USE THIS INSTEAD OF CODE ABOVE ^^^^^^^ THIS LINE, USES ALOT LESS CODE!!!vvvvvvvvv
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done // SETS the value to the OPPOSITE, TRUE -> FALSE, FALSE -> TRUE
         
         //^^^^^^^^^^Instead use this above, ALOT LESS CODE!!^^^^^^^^^^
+        
+        //vvvvvv Below is a way to UPDATE (crUd) the "title" attribute (or Field)(or Property) vvvvvvvv
+        
+        //itemArray[indexPath.row].setValue("Completed", forKey: "title")
+        
+        //^^^^^^^^^^Above is a way to UPDATE (crUd the "title" attribute (or Field)(or Property)^^^^^^^^
+        
+        //vvvvvv Below is the DELETE part of (cruD).  Has to be in this order!!!vvvvvvvvvv
+        
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
+        
+        //^^^^^^^Below is the DELETE part of (cruD).  Has to be in this order!!!^^^^^^^
+        
 //        if(itemArray[indexPath.row].done == false) {
 //            itemArray[indexPath.row].done = true
 //        } else{
@@ -111,7 +153,7 @@ class TodoListViewController: UITableViewController {
         
         saveItems()
         
-        tableView.reloadData()
+        //tableView.reloadData()
             
         
 //        if(tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark){
@@ -123,7 +165,7 @@ class TodoListViewController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
     }
 
-    //MARK Add new items
+    //MARK: Add new items
     
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -136,15 +178,28 @@ class TodoListViewController: UITableViewController {
             //what will happen once the user clicks the Add Item Button
             //print("Success!")
             
-            let newItem = Item()
+            //let newItem = Item()
+            
+            // vvvvvvv This is how we create a reference (Singleton Object) to our AppDelegate!!!!!!vvvvvvvvvvvvv
+            
+            //let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+            
+            // ^^^^^^^^ moving the above line of code up on top to make it a shared constant ^^^^^^^^^^^^^
+            
+            //^^^^^^^^ added to
+            
+            let newItem = Item(context: self.context) // CREATES ((C)rud) an NSMangedObject of type: Item inside our context named: context.  So, we are creating data in our temporary context so we can later save (or commit) that data (context.save()) from that context into our persistant container (database). We use self. because we are inside a CLOSURE at the moment
+            
             newItem.title = textField.text!
+            newItem.done = false
+            newItem.parentCategory = self.selectedCategory
             
             self.itemArray.append(newItem)
             
-            //self.itemArray.append(textField.text!) // need to force unwrap it (!) because it may be NIL
+//            self.itemArray.append(textField.text!) // need to force unwrap it (!) because it may be NIL
             // you can also put: .append(textField.text ?? "New Item") if it is NIL then it'll replace the string with "New Item"
             
-            //self.defaults.set(self.itemArray, forKey: "TodoListArray") //Storing the Array data in out app's default .plist file
+//            self.defaults.set(self.itemArray, forKey: "TodoListArray") //Storing the Array data in out app's default .plist file
             
             self.saveItems() // <-- vvvvv Put the below code into a function to clean it up vvvvvvvvv
             
@@ -173,17 +228,23 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
-    //MARK - Model Manupilation Methods
+    //MARK: - Model Manupilation Methods
     
     func saveItems(){
         
-        let encoder = PropertyListEncoder()
+//        let encoder = PropertyListEncoder()
+//
+//        do{
+//            let data = try encoder.encode(itemArray)
+//            try data.write(to: dataFilePath!)
+//        } catch{
+//            print("Error encoding item array, \(error)")
+//        }
         
         do{
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            try context.save()
         } catch{
-            print("Error encoding item array, \(error)")
+            print("Error saving context \(error)")
         }
         
         
@@ -191,18 +252,93 @@ class TodoListViewController: UITableViewController {
         
     }
     
-    func loadItems(){
+    //vvvvvvvv Reading items (c(R)ud) from our database vvvvvvvvvv
+    
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil){ // 'with' is our external parameter, 'request' is our internal parameter
         
-       if let data = try? Data(contentsOf: dataFilePath!){ // the ? changes it to an optional, which means i have to use optional binding (if statement) to unwrap it safely
-            let decoder = PropertyListDecoder()
+        //vvvvvv trying to retrieve (Our Output) an array of Objects of  type: Item that is stored in our persistant container vvvvv
+        
+        //let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+        
+        if let additionalPredicate = predicate { // making sure it is not NIL
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        } else {
+            request.predicate = categoryPredicate
+        }
+        
+//        request.predicate = compoundPredicate
+        
         do{
-        itemArray = try decoder.decode([Item].self, from: data)
-        }catch{
-            print("Error decoding item array, \(error)")
+            itemArray = try context.fetch(request)
+        } catch{
+            print("error fetching data from context \(error)")
+        }
+        
+        tableView.reloadData()
+   
+    }
+    
+    
+//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+//
+//    }
+    
+}
+
+//MARK: - Search Bar Methods
+
+extension TodoListViewController: UISearchBarDelegate{ // Extending the functionality of our
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar){
+        
+       let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+       print(searchBar.text!)
+        
+       let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+       request.predicate = predicate
+        
+       
+       request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)] // .sortDescriptors expects an array, so we add [] brackets
+        
+        loadItems(with: request, predicate: predicate )
+        
+//        do{
+//            itemArray = try context.fetch(request)
+//        }catch{
+//                print("Error fetching data from context \(error)")
+//            }
+        
+//        tableView.reloadData()
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        print(searchBar.text!)
+        
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)] // .sortDescriptors expects an array, so we add [] brackets
+        
+        loadItems(with: request)
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            
+            DispatchQueue.main.async{ // Asking it to grab us the MAIN Thread, which is where we should be updating our User Interface elements. The DespatchQueue manager that assigns projects (tasks) to different threads. .main is our main thread.
+                
+                searchBar.resignFirstResponder() //Running this method on the MAIN Queue (Main Thread)
+
             }
         }
-
-
     }
+    
+    
 }
 
